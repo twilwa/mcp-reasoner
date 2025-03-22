@@ -1,9 +1,5 @@
-import { StateManager } from '../state.js';
-import { BaseStrategy } from './base.js';
-export declare enum ReasoningStrategy {
-    BEAM_SEARCH = "beam_search",
-    MCTS = "mcts"
-}
-export declare class StrategyFactory {
-    static createStrategy(type: ReasoningStrategy, stateManager: StateManager): BaseStrategy;
-}
+import type { StateManager } from '../state.js';
+import type { BaseStrategy } from './base.js';
+import { ReasoningStrategy } from '../types.js';
+export declare function createStrategy(type: ReasoningStrategy, stateManager: StateManager): BaseStrategy;
+export { ReasoningStrategy } from '../types.js';

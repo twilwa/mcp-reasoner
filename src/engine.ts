@@ -1,99 +1,116 @@
-interface ThoughtNode {
-    thought: string;
-    thoughtNumber: number;
-    totalThoughts: number;
-    nextThoughtNeeded: boolean;
-    score: number;
-    children: ThoughtNode[];
-    parent?: ThoughtNode;
+import { Reasoner } from './reasoner.js';
+import type { ReasoningRequest, ReasoningResponse } from './types.js';
+
+// Extended response type to include game dev specific data
+interface EnhancedGameDevResponse extends ReasoningResponse {
+    godotData?: Record<string, unknown>;
+    blenderData?: Record<string, unknown>;
+    visualizationData?: Record<string, unknown>;
+    error?: boolean;
+    errorMessage?: string;
 }
 
 export class ReasoningEngine {
-    private thoughts: ThoughtNode[] = [];
-    private readonly beamWidth = 3;
-    private readonly minScore = 0.5;
-
-    private evaluateThought(thought: ThoughtNode): number {
-        // Simple scoring based on:
-        // - Length (indicating detail)
-        // - Contains mathematical expressions
-        // - Contains logical connectors
-        let score = 0;
-        
-        // Length score
-        score += Math.min(thought.thought.length / 100, 0.4);
-        
-        // Mathematical expressions
-        if (/[+\-*/=<>]/.test(thought.thought)) {
-            score += 0.2;
-        }
-        
-        // Logical connectors
-        if (/\b(therefore|because|if|then|thus|hence|so)\b/i.test(thought.thought)) {
-            score += 0.2;
-        }
-
-        return score;
+    private reasoner: Reasoner;
+    
+    constructor() {
+        this.reasoner = new Reasoner();
     }
-
-    public addThought(thought: string, thoughtNumber: number, totalThoughts: number, nextThoughtNeeded: boolean): ThoughtNode {
-        const node: ThoughtNode = {
-            thought,
-            thoughtNumber,
-            totalThoughts,
-            nextThoughtNeeded,
-            score: 0,
-            children: []
-        };
-
-        // Evaluate thought
-        node.score = this.evaluateThought(node);
-
-        // Add to parent if this is not the first thought
-        if (this.thoughts.length > 0) {
-            const potentialParents = this.thoughts.filter(t => t.thoughtNumber === thoughtNumber - 1);
-            if (potentialParents.length > 0) {
-                // Find best parent based on score
-                const bestParent = potentialParents.reduce((a, b) => a.score > b.score ? a : b);
-                node.parent = bestParent;
-                bestParent.children.push(node);
+    
+    public async handle(request: ReasoningRequest): Promise<EnhancedGameDevResponse> {
+        try {
+            // Check if it's a standard MCP request or a game dev request
+            const isGameDevRequest = 'problemType' in request;
+            
+            // Process the request through the reasoner
+            const response = await this.reasoner.processThought(request);
+            
+            // Add visualization data for game dev requests
+            if (isGameDevRequest) {
+                return this._enhanceGameDevResponse(response);
             }
+            
+            return response;
+        } catch (error) {
+            console.error("Error in reasoning engine:", error);
+            return {
+                nodeId: '',
+                thought: '',
+                score: 0,
+                depth: 0,
+                isComplete: false,
+                nextThoughtNeeded: false,
+                error: true,
+                errorMessage: (error instanceof Error) ? error.message : "Unknown error in reasoning engine"
+            };
         }
-
-        // Keep beam width best thoughts at each level
-        const sameLevel = this.thoughts.filter(t => t.thoughtNumber === thoughtNumber);
-        sameLevel.push(node);
-        if (sameLevel.length > this.beamWidth) {
-            sameLevel.sort((a, b) => b.score - a.score);
-            sameLevel.splice(this.beamWidth);
-        }
-
-        this.thoughts.push(node);
-        return node;
     }
-
-    public getBestPath(): ThoughtNode[] {
-        const bestLast = [...this.thoughts]
-            .filter(t => !t.nextThoughtNeeded)
-            .sort((a, b) => b.score - a.score)[0];
-
-        if (!bestLast) return [];
-
-        const path: ThoughtNode[] = [bestLast];
-        let current = bestLast;
-        while (current.parent) {
-            path.unshift(current.parent);
-            current = current.parent;
-        }
-        return path;
-    }
-
-    public getStats() {
+    
+    private _enhanceGameDevResponse(response: ReasoningResponse): EnhancedGameDevResponse {
         return {
-            totalThoughts: this.thoughts.length,
-            bestScore: Math.max(...this.thoughts.map(t => t.score)),
-            averageScore: this.thoughts.reduce((a, b) => a + b.score, 0) / this.thoughts.length,
-            branchingFactor: this.thoughts.reduce((a, b) => a + b.children.length, 0) / this.thoughts.length
+            ...response,
+            godotData: this._extractGodotData(response),
+            blenderData: this._extractBlenderData(response),
+            visualizationData: this._generateVisualizationData(response)
         };
+    }
+    
+    private _extractGodotData(response: ReasoningResponse): Record<string, unknown> {
+        // Extract or transform data specifically for Godot
+        // For example, convert thought paths into node hierarchies
+        // This is a placeholder - actual implementation would depend on Godot integration details
+        return {
+            nodeStructure: {},
+            resourcePaths: [],
+            scriptSnippets: {}
+        };
+    }
+    
+    private _extractBlenderData(response: ReasoningResponse): Record<string, unknown> {
+        // Extract or transform data specifically for Blender
+        // For example, extract 3D structure information
+        return {
+            materialStructure: {},
+            assetCategories: [],
+            pipelineSteps: []
+        };
+    }
+    
+    private _generateVisualizationData(response: ReasoningResponse): Record<string, unknown> {
+        // Generate data for visualizing the reasoning process
+        // Could be used for debugging or educational purposes
+        return {
+            reasoningTreeData: this._formatReasoningTree(response),
+            metricsData: this._formatMetricsData(response),
+            timelineData: this._formatTimelineData(response)
+        };
+    }
+    
+    private _formatReasoningTree(response: ReasoningResponse): Record<string, unknown> {
+        // Format the reasoning tree for visualization
+        // Placeholder - actual implementation would depend on visualization needs
+        return {};
+    }
+    
+    private _formatMetricsData(response: ReasoningResponse): Record<string, unknown> {
+        // Format metrics for visualization
+        return {};
+    }
+    
+    private _formatTimelineData(response: ReasoningResponse): Record<string, unknown> {
+        // Format timeline data for visualization
+        return {};
+    }
+    
+    public async getBestPath(): Promise<unknown[]> {
+        return this.reasoner.getBestPath();
+    }
+    
+    public async getStats(): Promise<unknown> {
+        return this.reasoner.getStats();
+    }
+    
+    public async clear(): Promise<void> {
+        return this.reasoner.clear();
     }
 }
