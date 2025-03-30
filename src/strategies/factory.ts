@@ -1,25 +1,32 @@
-import { StateManager } from '../state.js';
-import { BaseStrategy } from './base.js';
+import type { StateManager } from '../state.js';
+import type { BaseStrategy } from './base.js';
 import { BeamSearchStrategy } from './beam-search.js';
 import { MonteCarloTreeSearchStrategy } from './mcts.js';
+import { AStarSearchStrategy } from './a-star.js';
+import { ConstraintSatisfactionStrategy } from './constraint-satisfaction.js';
+import { HybridStrategy } from './hybrid.js';
+import { ReasoningStrategy } from '../types.js';
 
-export enum ReasoningStrategy {
-  BEAM_SEARCH = 'beam_search',
-  MCTS = 'mcts'
-}
-
-export class StrategyFactory {
-  static createStrategy(
-    type: ReasoningStrategy,
-    stateManager: StateManager
-  ): BaseStrategy {
-    switch (type) {
-      case ReasoningStrategy.BEAM_SEARCH:
-        return new BeamSearchStrategy(stateManager);
-      case ReasoningStrategy.MCTS:
-        return new MonteCarloTreeSearchStrategy(stateManager);
-      default:
-        throw new Error(`Unknown strategy type: ${type}`);
-    }
+// Function to create a strategy based on type
+export function createStrategy(
+  type: ReasoningStrategy,
+  stateManager: StateManager
+): BaseStrategy {
+  switch (type) {
+    case ReasoningStrategy.BEAM_SEARCH:
+      return new BeamSearchStrategy(stateManager);
+    case ReasoningStrategy.MCTS:
+      return new MonteCarloTreeSearchStrategy(stateManager);
+    case ReasoningStrategy.A_STAR:
+      return new AStarSearchStrategy(stateManager);
+    case ReasoningStrategy.CONSTRAINT_SATISFACTION:
+      return new ConstraintSatisfactionStrategy(stateManager);
+    case ReasoningStrategy.HYBRID:
+      return new HybridStrategy(stateManager);
+    default:
+      throw new Error(`Unknown strategy type: ${type}`);
   }
 }
+
+// Re-export ReasoningStrategy from types.js for backwards compatibility
+export { ReasoningStrategy } from '../types.js';
